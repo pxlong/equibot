@@ -2,3 +2,7 @@ logs/
 **/__pycache__
 .DS_Store
 *.egg-info
+data
+*.npz
+wandb
+*.mp4

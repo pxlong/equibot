@@ -45,7 +45,9 @@ class BaseDataset(Dataset):
 
         self.data_dir = os.path.join(cfg["path"], "*")
 
+        print("[0] data dir: ", self.data_dir)
         self.file_names = sorted(glob.glob(self.data_dir))
+        # print("[1] file names: ", self.file_names)
         if "num_demos" in cfg:
             key_fn = lambda x: "_".join(x.split("/")[-1].split("_")[:-1])
             ep_list = list(sorted(set([key_fn(fn) for fn in self.file_names])))
@@ -58,6 +60,7 @@ class BaseDataset(Dataset):
         else:
             print("[dataset.py] Using all demos")
 
+        # print("[2] file names: ", self.file_names)
         ep_length_dict = defaultdict(lambda: 0)
         ep_t_offset_dict = defaultdict(lambda: 1000)
         key_fn = lambda x: "_".join(x.split("/")[-1].split("_")[:-1])

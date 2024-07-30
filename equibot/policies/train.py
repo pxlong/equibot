@@ -17,7 +17,7 @@ from equibot.policies.vec_eval import run_eval
 from equibot.envs.subproc_vec_env import SubprocVecEnv
 
 
-@hydra.main(config_path="configs", config_name="fold_synthetic")
+@hydra.main(version_base=None, config_path="configs", config_name="fold_synthetic")
 def main(cfg):
     assert cfg.mode == "train"
     np.random.seed(cfg.seed)

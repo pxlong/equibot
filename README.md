@@ -16,17 +16,19 @@ This repository includes:
 
 ### Installation
 
-This codebase is tested with the following setup: Ubuntu 20.04, an RTX 4090 GPU, CUDA 11.8. In the root directory of the repository, run the following commands:
+This codebase is tested with the following setup: Ubuntu 20.04, an RTX 3090 GPU, CUDA 12.4 (updated by Pinxin based on the XHT computer). In the root directory of the repository, run the following commands:
 
 ```
-conda create -n lfd python=3.10 -y
-conda activate lfd
+conda create -n equibot python=3.10 -y
+conda activate equibot
 
-conda install -y fvcore iopath ffmpeg -c iopath -c fvcore
-pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+pip install fvcore iopath ffmpeg
+pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu124
 pip install "git+https://github.com/facebookresearch/pytorch3d.git"
 
 pip install -e .
+pip uninstall numpy
+pip install numpy==1.26.4
 ```
 
 Then, in the last two lines of [this config file](equibot/policies/configs/base.yaml), enter the wandb entity and project names for logging purposes. If you do not have a wandb account yet, you can register [here](https://wandb.ai).
@@ -36,13 +38,13 @@ Then, in the last two lines of [this config file](equibot/policies/configs/base.
 The following code generates demonstrations for simulated mobile environments. To change the number of generated demos, change `--num_demos 50` to a different number.
 
 ```
-python -m equibot.envs.sim_mobile.generate_demos --data_out_dir ../data/fold \
+python -m equibot.envs.sim_mobile.generate_demos --data_out_dir ./data/fold \
     --num_demos 50 --cam_dist 2 --cam_pitches -75 --task_name fold
 
-python -m equibot.envs.sim_mobile.generate_demos --data_out_dir ../data/cover \
+python -m equibot.envs.sim_mobile.generate_demos --data_out_dir ./data/cover \
     --num_demos 50 --cam_dist 2 --cam_pitches -75 --task_name cover
 
-python -m equibot.envs.sim_mobile.generate_demos --data_out_dir ../data/close \
+python -m equibot.envs.sim_mobile.generate_demos --data_out_dir ./data/close \
     --num_demos 50 --cam_dist 1.5 --cam_pitches -45 --task_name close
 ```
 
@@ -54,12 +56,12 @@ The following code runs training for our method and the Diffusion Policy baselin
 # diffusion policy baseline (takes point clouds as input)
 python -m equibot.policies.train --config-name fold_mobile_dp \
     prefix=sim_mobile_fold_7dof_dp \
-    data.dataset.path=[data out dir in the last section]/pcs
+    data.dataset.path=/home/px/ws/github/equibot/data/fold/pcs
 
 # our method (equibot)
 python -m equibot.policies.train --config-name fold_mobile_equibot \
     prefix=sim_mobile_fold_7dof_equibot \
-    data.dataset.path=[data out dir in the last section]/pcs
+    data.dataset.path=/home/px/ws/github/equibot/data/fold/pcs
 ```
 
 ### Evaluation
@@ -69,31 +71,37 @@ The commands below evaluate the trained EquiBot policy on the four different set
 ```
 # Original setup
 python -m equibot.policies.eval --config-name fold_mobile_equibot \
-    prefix="eval_original_sim_mobile_fold_equibot_s1" mode=eval \
-    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot_s1/ckpt01999.pth" \
+    prefix="eval_original_sim_mobile_fold_equibot" mode=eval \
+    training.ckpt="/home/px/ws/github/equibot/logs/train/sim_mobile_fold_7dof_equibot/ckpt01999.pth" \
     env.args.max_episode_length=50 env.vectorize=true
 
 # R+Su setup
 python -m equibot.policies.eval --config-name fold_mobile_equibot \
-    prefix="eval_rsu_sim_mobile_fold_7dof_equibot_s1" mode=eval \
-    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot_s1/ckpt01999.pth" \
+    prefix="eval_rsu_sim_mobile_fold_7dof_equibot" mode=eval \
+    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot/ckpt01999.pth" \
     env.args.scale_high=2 env.args.uniform_scaling=true \
     env.args.randomize_rotation=true env.args.randomize_scale=true env.vectorize=true
 
 # R+Sn setup
 python -m equibot.policies.eval --config-name fold_mobile_equibot \
-    prefix="eval_rsn_sim_mobile_fold_7dof_equibot_s1" mode=eval \
-    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot_s1/ckpt01999.pth" \
+    prefix="eval_rsn_sim_mobile_fold_7dof_equibot" mode=eval \
+    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot/ckpt01999.pth" \
     env.args.scale_high=2 env.args.scale_aspect_limit=1.33 \
     env.args.randomize_rotation=true env.args.randomize_scale=true env.vectorize=true
 
 # R+Sn+P setup
 python -m equibot.policies.eval --config-name fold_mobile_equibot \
-    prefix="eval_rsnp_sim_mobile_fold_7dof_equibot_s1" mode=eval \
-    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot_s1/ckpt01999.pth" \
+    prefix="eval_rsnp_sim_mobile_fold_7dof_equibot" mode=eval \
+    training.ckpt="[log_dir]/train/sim_mobile_fold_7dof_equibot/ckpt01999.pth" \
     env.args.scale_high=2 env.args.scale_aspect_limit=1.33 \
     env.args.randomize_rotation=true env.args.randomize_scale=true \
     +env.args.randomize_position=true +env.args.rand_pos_scale=0.5 env.vectorize=true
+```
+
+## Tips
+- To kill wandb after Ctrl+c in the terminal:
+```
+ps aux | grep wandb | grep -v grep | awk '{print $2}' | xargs kill -9
 ```
 
 ## License
